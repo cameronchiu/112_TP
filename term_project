@@ -1,0 +1,273 @@
+#term_project.py
+from cmu_112_graphics import *
+import random
+
+def createRoad(app):
+    for row in range(95, 103):
+        for col in range(app.cols):
+            app.board[row][col] = "#413F34"
+######
+def temp():
+    pass
+
+def maxItemLength(a):
+    maxLen = 0
+    rows = len(a)
+    cols = len(a[0])
+    for row in range(rows):
+        for col in range(cols):
+            maxLen = max(maxLen, len(str(a[row][col])))
+    return maxLen
+
+# Because Python prints 2d lists on one row,
+# we might want to write our own function
+# that prints 2d lists a bit nicer.
+def print2dList(a):
+    if (a == []):
+        # So we don't crash accessing a[0]
+        print([])
+        return
+    rows, cols = len(a), len(a[0])
+    fieldWidth = maxItemLength(a)
+    print('[')
+    for row in range(rows):
+        print(' [ ', end='')
+        for col in range(cols):
+            if (col > 0): print(', ', end='')
+            print(str(a[row][col]).rjust(fieldWidth), end='')
+        print(' ]')
+    print(']')
+
+#####
+
+
+def appStarted(app):
+    app.timerDelay = 100
+    app.click = False
+    app.leftEdgeWindowCol = 9
+    app.pixelWidth = app.pixelHeight = 4
+    app.gridWidth = app.width
+    app.gridHeight = app.height
+    app.rows = app.gridHeight//app.pixelHeight
+    app.cols = app.gridWidth//app.pixelWidth
+    app.board = make2dList(app.rows, app.cols, None)
+    #checkboard
+    createCheckerBoard(app)
+    #road
+    createRoad(app)
+    #terrain
+    app.speedOfTerrain = 50 #pixels/timerFired
+    app.bottomTerrainRow = 94
+    app.terrainHeight = 3
+    app.terrain = make2dList(app.terrainHeight, app.cols, None)
+    app.auxTerrain = make2dList(app.terrainHeight, app.cols, None)
+    createTerrain(app, app.terrain)
+    createTerrain(app, app.auxTerrain)
+    #car frame
+    app.carFrame = app.loadImage("car_blue_background.png")
+
+    app.x, app.y = (0,0)
+    app.row, app.col = (0,0)
+    
+
+
+def drawStaff(app, canvas):
+    spacing = 4
+    for i in range(5):
+        y = getCellBounds(app, 23 + i*spacing, 13)[3]
+        canvas.create_line(0, y, app.width/2, y + 4*spacing, app.width, y, width = 2, smooth = True)
+   
+
+    
+
+def createCheckerBoard(app):
+    temp = True
+    for row in range(app.rows):
+        temp = not temp
+        for col in range(app.cols):
+            if temp:
+                app.board[row][col] = "white"
+            else:
+                app.board[row][col] = "pink"
+            temp = not temp
+
+def getDeltaRowAndCol(app, row, col, direction):
+
+    randInt = random.randint(1,4)
+    if randInt <= 3:
+        return (0, +1)
+
+    if direction:
+        return (-1, 0)
+    
+    else: return (+1, 0)
+
+def createTerrain(app, terrain):
+    terrainHeight = app.terrainHeight
+    terrainRange = (0, terrainHeight)
+    peak = random.randint(int(terrainHeight*.5), terrainHeight)
+    count = 0
+    direction = True #upwards
+    randomStartRow = random.randint(terrainRange[0], terrainRange[1])
+    row, col = randomStartRow, 0
+    while col < len(terrain[0]) - 1:
+
+        dRow, dCol = getDeltaRowAndCol(app, row, col, direction)
+        if dRow != 0: #we're moving up or down
+            count += 1
+
+        newRow = row + dRow
+        newCol = col + dCol
+
+        if newRow >= terrainRange[1] or newRow < terrainRange[0] or count == peak:
+            print("here")
+            col = newCol
+            direction = not direction
+            peak = random.randint(int(terrainHeight*.5), terrainHeight)
+            count = 0
+
+        else:
+            row, col = newRow, newCol
+
+        print("row:", row, "col:", col)
+        print("total rows:", len(terrain), "total cols:", len(terrain[0]))
+        
+        for i in range(row, len(terrain)):
+            # print("fill in pixel:", i, ",", col)
+            terrain[i][col] = "#ada48b"
+
+def drawTerrain(app, canvas):
+    rows, cols = len(app.terrain), len(app.terrain[0])
+    for row in range(rows):
+        for col in range(cols):
+            color = app.terrain[row][col]
+            if color != None:
+                x0, y0, x1, y1 = getCellBounds(app, app.bottomTerrainRow - app.terrainHeight + 1 + row, col)
+                canvas.create_rectangle(x0, y0, x1, y1, fill = color, width = 0)
+                
+
+
+############
+def createTerrain2(app):
+    terrainHeight = app.terrainHeight2
+    terrainRange = (app.bottomTerrainRow2 - terrainHeight, app.bottomTerrainRow2)
+    peak = random.randint(int(terrainHeight*.5), terrainHeight)
+    count = 0
+    direction = True #upwards
+    randomStartRow = random.randint(terrainRange[0], terrainRange[1])
+    row, col = randomStartRow, app.leftEdgeWindowCol - 1
+    while col < app.cols - 1:
+
+        dRow, dCol = getDeltaRowAndCol(app, row, col, direction)
+        if dRow != 0: #we're moving up or down
+            count += 1
+
+        newRow = row + dRow
+        newCol = col + dCol
+
+        if newRow > app.bottomTerrainRow2 or newRow < app.bottomTerrainRow2 - terrainHeight:
+            print("here")
+            col = newCol
+            direction = not direction
+            peak = random.randint(int(terrainHeight*.5), terrainHeight)
+            count = 0
+
+        else:
+            row, col = newRow, newCol
+
+        if count == peak:
+            row += 1
+            peak = random.randint(int(terrainHeight*.5), terrainHeight)
+            direction = not direction
+            count = 0
+        
+        for i in range(row, app.bottomTerrainRow + 1):
+            app.board[i][col] = "#fff0c7"
+
+        
+       
+
+
+def mousePressed(app, event):
+    app.x = event.x
+    app.y = event.y
+    app.row, app.col = getCell(app, app.x, app.y)
+    print(app.row, app.col)
+    app.board[app.row][app.col] = "green"
+
+def timerFired(app):
+    moveTerrain(app)
+
+def make2dList(rows, cols, item):
+    return [ ([item] * cols) for row in range(rows) ]
+
+def moveTerrain(app):
+    #removes the first column of pixels from the terrain
+    print(len(app.auxTerrain[0]), "<<<<<<<<")
+    if len(app.auxTerrain[0]) < app.speedOfTerrain:
+        print("HERE<-----YAY!")
+        app.auxTerrain = make2dList(app.terrainHeight, app.cols, None)
+        createTerrain(app, app.auxTerrain)
+    
+    for row in range(len(app.terrain)):
+        for i in range(app.speedOfTerrain):
+            if len(app.terrain[0]) > 0:
+                app.terrain[row].pop(0)
+                #add another row
+                nextPixel = app.auxTerrain[row].pop(0)
+                app.terrain[row].append(nextPixel)
+
+
+
+
+
+def getCellBounds(app, row, col):
+    x0 = app.gridWidth * col / app.cols
+    x1 = app.gridWidth * (col+1) / app.cols
+    y0 = app.gridHeight * row / app.rows
+    y1 = app.gridHeight * (row+1) / app.rows
+    return (x0, y0, x1, y1)
+
+def getCell(app, x, y):
+    cellWidth  = app.gridWidth / app.cols
+    cellHeight = app.gridHeight / app.rows
+    row = int(y / cellHeight)
+    col = int(x / cellWidth)
+    return (row, col)
+
+def drawBoard(app, canvas):
+    for row in range(app.rows):
+        for col in range(app.cols):
+            color = app.board[row][col]
+            (x0, y0, x1, y1) = getCellBounds(app, row, col)
+            canvas.create_rectangle(x0, y0, x1, y1, fill=color, width = 0)
+
+
+def redrawAll(app, canvas):
+    
+    
+    #canvas.create_line(0,0,app.width/2, app.height/2, app.width, 0, smooth = True)
+    #canvas.create_oval(app.width/2 - 80, app.height/2 - 150, app.width/2 + 80, app.height/2 + 10)
+    #canvas.create_image(0, 0, image=ImageTk.PhotoImage(app.testImage), anchor = 'nw')
+    #canvas.create_image(0, 0, image=ImageTk.PhotoImage(app.png), anchor = 'nw')
+    drawBoard(app, canvas)
+    drawStaff(app, canvas)
+    drawTerrain(app, canvas)
+    canvas.create_image(0, 0, image=ImageTk.PhotoImage(app.carFrame), anchor = 'nw')
+    canvas.create_text(app.x, app.y, text=f"({app.row},{app.col})", font="Arial 12 bold", fill = "red")
+
+    
+
+    
+
+###
+def gameDimensions():
+    width = 648
+    height = 528
+    return width, height
+
+def playGame():
+    width, height = gameDimensions()
+    runApp(width=width, height=height)
+
+playGame()
